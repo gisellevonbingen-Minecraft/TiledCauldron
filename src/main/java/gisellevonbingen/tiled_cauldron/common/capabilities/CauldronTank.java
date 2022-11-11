@@ -3,8 +3,8 @@ package gisellevonbingen.tiled_cauldron.common.capabilities;
 import gisellevonbingen.tiled_cauldron.common.CauldronFluidTransfom;
 import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.FluidAttributes;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.FluidType;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 
 public class CauldronTank implements IFluidHandler
@@ -58,7 +58,7 @@ public class CauldronTank implements IFluidHandler
 
 	public int getTankCapacity()
 	{
-		return FluidAttributes.BUCKET_VOLUME;
+		return FluidType.BUCKET_VOLUME;
 	}
 
 	@Override

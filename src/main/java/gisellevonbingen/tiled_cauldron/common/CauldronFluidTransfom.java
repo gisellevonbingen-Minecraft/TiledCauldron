@@ -12,6 +12,7 @@ import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.minecraftforge.registries.ForgeRegistries;
 
 public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 {
@@ -75,7 +76,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			}
 			else
 			{
-				throw new IllegalArgumentException("already registered fluid: " + transfom.fluid().getRegistryName());
+				throw new IllegalArgumentException("already registered fluid: " + ForgeRegistries.FLUIDS.getKey(transfom.fluid()));
 			}
 
 		}

@@ -10,7 +10,7 @@ import net.minecraftforge.registries.RegistryObject;
 
 public class ModBlockEntityTypes
 {
-	public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITIES, TiledCauldron.MODID);
+	public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, TiledCauldron.MODID);
 
 	public static final RegistryObject<BlockEntityType<?>> CAULDRON = BLOCK_ENTITY_TYPES.register("cauldron", () -> BlockEntityType.Builder.of(CauldronBlockEntity::new, Blocks.CAULDRON).build(null));
 }
