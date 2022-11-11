@@ -1,0 +1,12 @@
+{
+	"required": true,
+	"package": "gisellevonbingen.tiled_cauldron.mixin",
+	"compatibilityLevel": "JAVA_17",
+	"client": [],
+	"mixins": [
+		"AbstractCauldronBlockMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[40,)"
+license="MIT"
+issueTrackerURL="https://github.com/gisellevonbingen/Minecraft-TiledCauldron/issues"
+
+[[mods]]
+    modId="tiled_cauldron"
+    version="${file.jarVersion}"
+    displayName="Tiled Cauldron"
+    displayURL="https://www.curseforge.com/minecraft/mc-mods/tiled-cauldron"
+    authors="gisellevonbingen"
+    description='''Connect pipe to Cauldron'''
+
+[[dependencies.tiled_cauldron]]
+    modId="forge"
+    mandatory=true
+    versionRange="[40.1.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.tiled_cauldron]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.18.2,)"
+    ordering="NONE"
+    side="BOTH"
