@@ -6,8 +6,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.BlockSource;
+import net.minecraft.core.dispenser.DispenseItemBehavior;
+import net.minecraft.world.item.BucketItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractCauldronBlock;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
@@ -42,6 +51,55 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 		}
 
 		return null;
+	}
+
+	public static DispenseItemBehavior wrapDispenseItemBehavior(BucketItem bucket, DispenseItemBehavior fallback)
+	{
+		if (bucket == Items.BUCKET)
+		{
+			return wrapFillBucket(fallback);
+		}
+
+		CauldronFluidTransfom byFluid = CauldronFluidTransfom.byFluid(bucket.getFluid());
+
+		if (byFluid != null)
+		{
+			return byFluid.wrapEmptyBucket(fallback);
+		}
+		else
+		{
+			return fallback;
+		}
+
+	}
+
+	public static DispenseItemBehavior wrapFillBucket(DispenseItemBehavior fallback)
+	{
+		return new DispenseItemBehavior()
+		{
+			@Override
+			public ItemStack dispense(BlockSource source, ItemStack item)
+			{
+				Level level = source.getLevel();
+				BlockPos pos = source.getPos().relative(source.getBlockState().getValue(DispenserBlock.FACING));
+
+				if (level.getBlockEntity(pos) instanceof CauldronBlockEntity blockEntity)
+				{
+					CauldronFluidTransfom transform = blockEntity.getTransform();
+
+					if (transform != null)
+					{
+						blockEntity.replaceBlockAndUpdate(Blocks.CAULDRON.defaultBlockState());
+						return new ItemStack(transform.fluid().getBucket());
+					}
+
+				}
+
+				return fallback.dispense(source, item);
+			}
+
+		};
+
 	}
 
 	public static List<CauldronFluidTransfom> values()
@@ -83,6 +141,29 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 		{
 			throw new IllegalArgumentException("blockState.getBlock() should be extends from " + AbstractCauldronBlock.class.getName());
 		}
+
+	}
+
+	public DispenseItemBehavior wrapEmptyBucket(DispenseItemBehavior fallback)
+	{
+		return new DispenseItemBehavior()
+		{
+			@Override
+			public ItemStack dispense(BlockSource source, ItemStack item)
+			{
+				Level level = source.getLevel();
+				BlockPos pos = source.getPos().relative(source.getBlockState().getValue(DispenserBlock.FACING));
+
+				if (level.getBlockEntity(pos) instanceof CauldronBlockEntity blockEntity)
+				{
+					blockEntity.replaceBlockAndUpdate(blockState());
+					return new ItemStack(Items.BUCKET);
+				}
+
+				return fallback.dispense(source, item);
+			}
+
+		};
 
 	}
 
