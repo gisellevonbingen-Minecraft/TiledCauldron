@@ -37,7 +37,7 @@ public class CauldronTank implements IFluidHandler
 			return FluidStack.EMPTY;
 		}
 
-		CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(this.getBlockEntity().getBlockState());
+		CauldronFluidTransfom transform = blockEntity.getTransform();
 
 		if (transform != null)
 		{
