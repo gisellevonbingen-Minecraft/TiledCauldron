@@ -60,4 +60,9 @@ public class CauldronBlockEntity extends BlockEntity
 		return this.fluidTank;
 	}
 
+	public CauldronFluidTransfom getTransform()
+	{
+		return CauldronFluidTransfom.getTransform(this.getBlockState());
+	}
+
 }
