@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.AbstractCauldronBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
+import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
@@ -91,6 +92,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 					if (transform != null)
 					{
 						blockEntity.replaceBlockAndUpdate(Blocks.CAULDRON.defaultBlockState());
+						level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.getPos(), 0);
 						return new ItemStack(transform.fluid().getBucket());
 					}
 
@@ -158,6 +160,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 				if (level.getBlockEntity(pos) instanceof CauldronBlockEntity blockEntity)
 				{
 					blockEntity.replaceBlockAndUpdate(blockState());
+					level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.getPos(), 0);
 					return new ItemStack(Items.BUCKET);
 				}
 
