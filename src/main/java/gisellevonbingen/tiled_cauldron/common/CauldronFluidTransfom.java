@@ -43,7 +43,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 		{
 			for (CauldronFluidTransfom transform : CauldronFluidTransfom.values())
 			{
-				if (cauldronBlock == transform.blockState.getBlock())
+				if (cauldronBlock == transform.blockState().getBlock())
 				{
 					return transform;
 				}
