@@ -106,13 +106,13 @@ dependencies {
     implementation fg.deobf("curse.maven:jade-324717:${jade_file}")
 
     // Refined Storage
-    compileOnly fg.deobf("curse.maven:refined-storage-243076:${refined_storage_file}")
+    //compileOnly fg.deobf("curse.maven:refined-storage-243076:${refined_storage_file}")
 
     // Mekanism
-    implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}")
-    runtimeOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:additions")
-    runtimeOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:generators")
-    runtimeOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:tools")
+    //implementation fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}")
+    //runtimeOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:additions")
+    //runtimeOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:generators")
+    //runtimeOnly fg.deobf("mekanism:Mekanism:${mc_version}-${mekanism_version}:tools")
 	
     // Pipez
     implementation fg.deobf("curse.maven:pipez-443900:${pipez_file}")
