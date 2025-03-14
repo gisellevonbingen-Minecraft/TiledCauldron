@@ -3,9 +3,9 @@ package gisellevonbingen.tiled_cauldron.common.capabilities;
 import gisellevonbingen.tiled_cauldron.common.CauldronFluidTransfom;
 import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
 import net.minecraft.world.level.material.Fluid;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.fluids.FluidType;
-import net.minecraftforge.fluids.capability.IFluidHandler;
+import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class CauldronTank implements IFluidHandler
 {
@@ -87,7 +87,7 @@ public class CauldronTank implements IFluidHandler
 
 		FluidStack fluid = this.getFluid();
 
-		if (fluid.isEmpty() == true || fluid.isFluidEqual(resource) == false)
+		if (fluid.isEmpty() == true || FluidStack.isSameFluidSameComponents(fluid, resource) == false)
 		{
 			int filling = this.getTankCapacity();
 
@@ -109,7 +109,7 @@ public class CauldronTank implements IFluidHandler
 	@Override
 	public FluidStack drain(FluidStack resource, FluidAction action)
 	{
-		if (this.getBlockEntity().isRemoved() == true || resource.isEmpty() == true || this.getFluid().isFluidEqual(resource) == false)
+		if (this.getBlockEntity().isRemoved() == true || resource.isEmpty() == true || FluidStack.isSameFluidSameComponents(this.getFluid(), resource) == false)
 		{
 			return FluidStack.EMPTY;
 		}

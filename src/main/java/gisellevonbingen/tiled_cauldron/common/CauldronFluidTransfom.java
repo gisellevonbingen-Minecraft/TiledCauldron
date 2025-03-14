@@ -8,8 +8,9 @@ import java.util.Map;
 
 import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.BlockSource;
+import net.minecraft.core.dispenser.BlockSource;
 import net.minecraft.core.dispenser.DispenseItemBehavior;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -22,7 +23,6 @@ import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 {
@@ -62,7 +62,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			return wrapFillBucket(fallback);
 		}
 
-		CauldronFluidTransfom byFluid = CauldronFluidTransfom.byFluid(bucket.getFluid());
+		CauldronFluidTransfom byFluid = CauldronFluidTransfom.byFluid(bucket.content);
 
 		if (byFluid != null)
 		{
@@ -82,8 +82,8 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			@Override
 			public ItemStack dispense(BlockSource source, ItemStack item)
 			{
-				Level level = source.getLevel();
-				BlockPos pos = source.getPos().relative(source.getBlockState().getValue(DispenserBlock.FACING));
+				Level level = source.level();
+				BlockPos pos = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
 
 				if (level.getBlockEntity(pos) instanceof CauldronBlockEntity blockEntity)
 				{
@@ -92,7 +92,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 					if (transform != null)
 					{
 						blockEntity.replaceBlockAndUpdate(Blocks.CAULDRON.defaultBlockState());
-						level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.getPos(), 0);
+						level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.pos(), 0);
 						return new ItemStack(transform.fluid().getBucket());
 					}
 
@@ -136,7 +136,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			}
 			else
 			{
-				throw new IllegalArgumentException("already registered fluid: " + ForgeRegistries.FLUIDS.getKey(transfom.fluid()));
+				throw new IllegalArgumentException("already registered fluid: " + BuiltInRegistries.FLUID.getKey(transfom.fluid()));
 			}
 
 		}
@@ -154,13 +154,13 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			@Override
 			public ItemStack dispense(BlockSource source, ItemStack item)
 			{
-				Level level = source.getLevel();
-				BlockPos pos = source.getPos().relative(source.getBlockState().getValue(DispenserBlock.FACING));
+				Level level = source.level();
+				BlockPos pos = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
 
 				if (level.getBlockEntity(pos) instanceof CauldronBlockEntity blockEntity)
 				{
 					blockEntity.replaceBlockAndUpdate(blockState());
-					level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.getPos(), 0);
+					level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.pos(), 0);
 					return new ItemStack(Items.BUCKET);
 				}
 
