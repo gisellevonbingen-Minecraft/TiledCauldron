@@ -1,7 +1,5 @@
 package gisellevonbingen.tiled_cauldron.common.capabilities;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
 import gisellevonbingen.tiled_cauldron.common.CauldronFluidTransfom;
@@ -20,16 +18,6 @@ import net.neoforged.neoforge.transfer.transaction.TransactionContext;
 
 public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> implements ResourceHandler<FluidResource>
 {
-	private static final Map<Location, CauldronTank> WRAPPERS = new HashMap<>();
-
-	private record Location(Level level, BlockPos pos) {}
-
-	public static CauldronTank get(Level level, BlockPos pos)
-	{
-		Location key = new Location(level, pos.immutable());
-		return WRAPPERS.computeIfAbsent(key, location -> new CauldronTank(location.level(), location.pos()));
-	}
-
 	static final class Snapshot
 	{
 		private final BlockState state;
@@ -45,23 +33,15 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 	}
 
 	private final CauldronBlockEntity blockEntity;
-	private final Level level;
-	private final BlockPos blockPos;
-	private FluidResource drainedFluid = FluidResource.EMPTY;
-	private int drainedAmount;
+	private FluidResource fluid = FluidResource.EMPTY;
+	private int drainedAmount = 0;
 
 	public CauldronTank(CauldronBlockEntity blockEntity)
 	{
 		this.blockEntity = blockEntity;
-		this.level = null;
-		this.blockPos = null;
-	}
 
-	public CauldronTank(Level level, BlockPos blockPos)
-	{
-		this.blockEntity = null;
-		this.level = level;
-		this.blockPos = blockPos;
+		CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(blockEntity.getBlockState());
+		this.fluid = transform != null ? FluidResource.of(transform.fluid()) : FluidResource.EMPTY;
 	}
 
 	@Override
@@ -79,24 +59,7 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 
 	public FluidResource getFluid()
 	{
-		if (this.isRemoved() == true)
-		{
-			return FluidResource.EMPTY;
-		}
-
-		BlockState state = this.getBlockState();
-		this.syncBuffer(state);
-		CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(state);
-
-		if (transform != null)
-		{
-			return FluidResource.of(transform.fluid());
-		}
-		else
-		{
-			return FluidResource.EMPTY;
-		}
-
+		return this.fluid;
 	}
 
 	@Override
@@ -162,19 +125,13 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		}
 
 		int filling = this.getTankCapacity();
-
 		if (amount < filling)
 		{
 			return 0;
 		}
 
-		CauldronFluidTransfom transform = CauldronFluidTransfom.byFluid(resource.getFluid());
-		if (transform == null)
-		{
-			return 0;
-		}
-
-		this.setBlockState(transform.blockState(), transaction);
+		this.fluid = resource;
+		this.updateSnapshots(transaction);
 		return filling;
 	}
 
@@ -208,13 +165,7 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		if (this.drainedAmount >= this.getTankCapacity())
 		{
 			this.drainedAmount = 0;
-			this.drainedFluid = FluidResource.EMPTY;
-			Level level = this.getLevel();
-			if (level != null)
-			{
-				level.setBlock(this.getBlockPos(), Blocks.CAULDRON.defaultBlockState(), Block.UPDATE_ALL);
-				level.invalidateCapabilities(this.getBlockPos());
-			}
+			this.fluid = FluidResource.EMPTY;
 		}
 
 		return draining;
@@ -230,23 +181,10 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		return resource.isComponentsPatchEmpty() == true && CauldronFluidTransfom.byFluid(resource.getFluid()) != null;
 	}
 
-	private void setBlockState(BlockState newState, TransactionContext transaction)
-	{
-		Level level = this.getLevel();
-		if (level == null)
-		{
-			return;
-		}
-
-		this.updateSnapshots(transaction);
-		level.setBlock(this.getBlockPos(), newState, Block.UPDATE_ALL);
-		level.invalidateCapabilities(this.getBlockPos());
-	}
-
 	@Override
 	protected Snapshot createSnapshot()
 	{
-		return new Snapshot(this.getBlockState(), this.drainedFluid, this.drainedAmount);
+		return new Snapshot(this.getBlockState(), this.fluid, this.drainedAmount);
 	}
 
 	@Override
@@ -258,7 +196,7 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 			return;
 		}
 
-		this.drainedFluid = snapshot.fluid;
+		this.fluid = snapshot.fluid;
 		this.drainedAmount = snapshot.drainedAmount;
 		level.setBlock(this.getBlockPos(), snapshot.state, Block.UPDATE_ALL);
 		level.invalidateCapabilities(this.getBlockPos());
@@ -274,15 +212,9 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		}
 
 		BlockPos pos = this.getBlockPos();
-		BlockState currentState = level.getBlockState(pos);
+		CauldronFluidTransfom newTransform = CauldronFluidTransfom.byFluid(this.fluid.getFluid());
 
-		if (currentState == originalState.state)
-		{
-			return;
-		}
-
-		level.setBlock(pos, originalState.state, Block.UPDATE_ALL);
-		level.setBlockAndUpdate(pos, currentState);
+		level.setBlock(pos, newTransform != null ? newTransform.blockState() : Blocks.CAULDRON.defaultBlockState(), Block.UPDATE_ALL);
 		level.invalidateCapabilities(pos);
 	}
 
@@ -293,66 +225,22 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 
 	private boolean isRemoved()
 	{
-		if (this.blockEntity != null)
-		{
-			return this.blockEntity.isRemoved();
-		}
-
-		return this.level == null;
+		return this.blockEntity.isRemoved();
 	}
 
 	private BlockState getBlockState()
 	{
-		if (this.blockEntity != null)
-		{
-			return this.blockEntity.getBlockState();
-		}
-
-		Level level = this.getLevel();
-		if (level == null)
-		{
-			return Blocks.AIR.defaultBlockState();
-		}
-
-		return level.getBlockState(this.blockPos);
-	}
-
-	private void syncBuffer(BlockState state)
-	{
-		CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(state);
-		if (transform == null)
-		{
-			this.drainedAmount = 0;
-			this.drainedFluid = FluidResource.EMPTY;
-			return;
-		}
-
-		FluidResource current = FluidResource.of(transform.fluid());
-		if (this.drainedFluid.isEmpty() == true || this.drainedFluid.equals(current) == false)
-		{
-			this.drainedFluid = current;
-			this.drainedAmount = 0;
-		}
+		return this.blockEntity.getBlockState();
 	}
 
 	private Level getLevel()
 	{
-		if (this.blockEntity != null)
-		{
-			return this.blockEntity.getLevel();
-		}
-
-		return this.level;
+		return this.blockEntity.getLevel();
 	}
 
 	private BlockPos getBlockPos()
 	{
-		if (this.blockEntity != null)
-		{
-			return this.blockEntity.getBlockPos();
-		}
-
-		return this.blockPos;
+		return this.blockEntity.getBlockPos();
 	}
 
 }

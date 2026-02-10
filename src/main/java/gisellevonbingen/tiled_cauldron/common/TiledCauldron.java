@@ -2,16 +2,17 @@ package gisellevonbingen.tiled_cauldron.common;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 import gisellevonbingen.tiled_cauldron.common.registries.ModBlockEntityTypes;
+import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
-import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import gisellevonbingen.tiled_cauldron.common.capabilities.CauldronTank;
 
 @Mod(TiledCauldron.MODID)
 public class TiledCauldron
@@ -39,13 +40,13 @@ public class TiledCauldron
 	{
 		e.registerBlock(Capabilities.Fluid.BLOCK, (level, pos, state, blockEntity, context) ->
 		{
-			return CauldronTank.get(level, pos);
+			return blockEntity instanceof CauldronBlockEntity cauldronBlockEntity ? cauldronBlockEntity.getFluidTank() : null;
 		}, Blocks.CAULDRON, Blocks.WATER_CAULDRON, Blocks.LAVA_CAULDRON, Blocks.POWDER_SNOW_CAULDRON);
 	}
 
-    public static Identifier rl(String path)
-    {
-        return Identifier.fromNamespaceAndPath(MODID, path);
-    }
+	public static Identifier rl(String path)
+	{
+		return Identifier.fromNamespaceAndPath(MODID, path);
+	}
 
 }
