@@ -8,7 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.TransferPreconditions;
@@ -20,21 +19,19 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 {
 	static final class Snapshot
 	{
-		private final BlockState state;
 		private final FluidResource fluid;
-		private final int drainedAmount;
+		private final int amount;
 
-		private Snapshot(BlockState state, FluidResource fluid, int drainedAmount)
+		private Snapshot(FluidResource fluid, int amount)
 		{
-			this.state = state;
 			this.fluid = fluid;
-			this.drainedAmount = drainedAmount;
+			this.amount = amount;
 		}
 	}
 
 	private final CauldronBlockEntity blockEntity;
 	private FluidResource fluid = FluidResource.EMPTY;
-	private int drainedAmount = 0;
+	private int amount = 0;
 
 	public CauldronTank(CauldronBlockEntity blockEntity)
 	{
@@ -42,6 +39,7 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 
 		CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(blockEntity.getBlockState());
 		this.fluid = transform != null ? FluidResource.of(transform.fluid()) : FluidResource.EMPTY;
+		this.amount = transform != null ? this.getTankCapacity() : 0;
 	}
 
 	@Override
@@ -66,12 +64,12 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 	public long getAmountAsLong(int index)
 	{
 		Objects.checkIndex(index, size());
-		if (this.getFluid().isEmpty() == true)
+		if (this.isRemoved() == true || this.getFluid().isEmpty() == true)
 		{
 			return 0;
 		}
 
-		return Math.max(0, this.getTankCapacity() - this.drainedAmount);
+		return this.amount;
 	}
 
 	@Override
@@ -105,33 +103,30 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 			return 0;
 		}
 
+		int filling = 0;
 		FluidResource current = this.getFluid();
 		if (current.isEmpty() == false)
 		{
-			if (current.equals(resource) == false)
+			if (current.equals(resource) == true)
 			{
 				return 0;
 			}
-
-			int filling = Math.min(amount, this.drainedAmount);
-			if (filling <= 0)
-			{
-				return 0;
-			}
-
-			this.updateSnapshots(transaction);
-			this.drainedAmount -= filling;
-			return filling;
+			
+			filling = Math.min(amount, this.getTankCapacity());
+		}
+		else
+		{
+			filling = Math.min(amount, this.getTankCapacity() - this.amount);
 		}
 
-		int filling = this.getTankCapacity();
-		if (amount < filling)
+		if (filling < this.getTankCapacity())
 		{
 			return 0;
 		}
 
-		this.fluid = resource;
 		this.updateSnapshots(transaction);
+		this.fluid = resource;
+		this.amount += filling;
 		return filling;
 	}
 
@@ -146,26 +141,25 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 			return 0;
 		}
 
-		FluidResource fluid = this.getFluid();
-		if (fluid.isEmpty() == true || fluid.equals(resource) == false)
+		FluidResource current = this.getFluid();
+		if (current.isEmpty() == true || current.equals(resource) == false)
 		{
 			return 0;
 		}
 
-		int available = this.getTankCapacity() - this.drainedAmount;
-		if (available <= 0)
+		int draining = Math.min(amount, this.amount);
+		if (draining < this.getTankCapacity())
 		{
 			return 0;
 		}
 
-		int draining = Math.min(amount, available);
 		this.updateSnapshots(transaction);
-		this.drainedAmount += draining;
+		this.amount -= draining;
 
-		if (this.drainedAmount >= this.getTankCapacity())
+		if (this.amount <= 0)
 		{
-			this.drainedAmount = 0;
 			this.fluid = FluidResource.EMPTY;
+			this.amount = 0;
 		}
 
 		return draining;
@@ -184,26 +178,18 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 	@Override
 	protected Snapshot createSnapshot()
 	{
-		return new Snapshot(this.getBlockState(), this.fluid, this.drainedAmount);
+		return new Snapshot(this.fluid, this.amount);
 	}
 
 	@Override
 	protected void revertToSnapshot(Snapshot snapshot)
 	{
-		Level level = this.getLevel();
-		if (level == null)
-		{
-			return;
-		}
-
 		this.fluid = snapshot.fluid;
-		this.drainedAmount = snapshot.drainedAmount;
-		level.setBlock(this.getBlockPos(), snapshot.state, Block.UPDATE_ALL);
-		level.invalidateCapabilities(this.getBlockPos());
+		this.amount = snapshot.amount;
 	}
 
 	@Override
-	protected void onRootCommit(Snapshot originalState)
+	protected void onRootCommit(Snapshot snapshot)
 	{
 		Level level = this.getLevel();
 		if (level == null || this.isRemoved() == true)
@@ -226,11 +212,6 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 	private boolean isRemoved()
 	{
 		return this.blockEntity.isRemoved();
-	}
-
-	private BlockState getBlockState()
-	{
-		return this.blockEntity.getBlockState();
 	}
 
 	private Level getLevel()
