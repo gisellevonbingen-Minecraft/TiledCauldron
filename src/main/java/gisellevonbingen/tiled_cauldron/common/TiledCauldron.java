@@ -4,11 +4,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import gisellevonbingen.tiled_cauldron.common.registries.ModBlockEntityTypes;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.block.Blocks;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
 
 @Mod(TiledCauldron.MODID)
 public class TiledCauldron
@@ -18,8 +22,9 @@ public class TiledCauldron
 
 	public TiledCauldron()
 	{
-		IEventBus fml_bus = FMLJavaModLoadingContext.get().getModEventBus();
+		IEventBus fml_bus = ModLoadingContext.get().getActiveContainer().getEventBus();
 		fml_bus.addListener(this::onCommonSetup);
+		fml_bus.addListener(this::onRegisterCapabilities);
 		ModBlockEntityTypes.BLOCK_ENTITY_TYPES.register(fml_bus);
 	}
 
@@ -31,9 +36,17 @@ public class TiledCauldron
 		});
 	}
 
-	public static ResourceLocation rl(String path)
+	public void onRegisterCapabilities(RegisterCapabilitiesEvent e)
 	{
-		return new ResourceLocation(MODID, path);
+		e.registerBlock(Capabilities.Fluid.BLOCK, (level, pos, state, blockEntity, context) ->
+		{
+			return blockEntity instanceof CauldronBlockEntity cauldronBlockEntity ? cauldronBlockEntity.getFluidTank() : null;
+		}, Blocks.CAULDRON, Blocks.WATER_CAULDRON, Blocks.LAVA_CAULDRON, Blocks.POWDER_SNOW_CAULDRON);
+	}
+
+	public static Identifier rl(String path)
+	{
+		return Identifier.fromNamespaceAndPath(MODID, path);
 	}
 
 }
