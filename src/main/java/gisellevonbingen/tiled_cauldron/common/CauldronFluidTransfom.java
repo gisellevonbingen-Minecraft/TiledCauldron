@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import gisellevonbingen.tiled_cauldron.common.capabilities.CauldronTank;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.dispenser.BlockSource;
 import net.minecraft.core.dispenser.DispenseItemBehavior;
@@ -22,13 +23,13 @@ import net.minecraft.world.level.block.LevelEvent;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.fluids.FluidType;
 
 public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 {
 	private static final List<CauldronFluidTransfom> LIST = new ArrayList<>();
 	private static final List<CauldronFluidTransfom> LIST_READONLY = Collections.unmodifiableList(LIST);
 	private static final Map<Fluid, CauldronFluidTransfom> BY_FLUIDS = new HashMap<>();
-	private static final Map<Fluid, CauldronFluidTransfom> BY_FLUIDS_READONLY = Collections.unmodifiableMap(BY_FLUIDS);
 
 	public static void bootStrap()
 	{
@@ -87,7 +88,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 				BlockState state = level.getBlockState(pos);
 				CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(state);
 
-				if (transform != null)
+				if (transform != null && CauldronTank.get(level, pos).getAmountAsLong(0) >= FluidType.BUCKET_VOLUME)
 				{
 					level.setBlockAndUpdate(pos, Blocks.CAULDRON.defaultBlockState());
 					level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.pos(), 0);
@@ -104,11 +105,6 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 	public static List<CauldronFluidTransfom> values()
 	{
 		return LIST_READONLY;
-	}
-
-	public static Map<Fluid, CauldronFluidTransfom> byFluids()
-	{
-		return BY_FLUIDS_READONLY;
 	}
 
 	public static CauldronFluidTransfom byFluid(Fluid fluid)
