@@ -8,6 +8,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.transfer.ResourceHandler;
 import net.neoforged.neoforge.transfer.TransferPreconditions;
@@ -36,10 +39,7 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 	public CauldronTank(CauldronBlockEntity blockEntity)
 	{
 		this.blockEntity = blockEntity;
-
-		CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(blockEntity.getBlockState());
-		this.fluid = transform != null ? FluidResource.of(transform.fluid()) : FluidResource.EMPTY;
-		this.amount = transform != null ? this.getTankCapacity() : 0;
+		this.syncFromBlockState(blockEntity.getBlockState());
 	}
 
 	@Override
@@ -103,23 +103,14 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 			return 0;
 		}
 
-		int filling = 0;
 		FluidResource current = this.getFluid();
-		if (current.isEmpty() == false)
+		if (current.isEmpty() == false && current.equals(resource) == false)
 		{
-			if (current.equals(resource) == true)
-			{
-				return 0;
-			}
-			
-			filling = Math.min(amount, this.getTankCapacity());
-		}
-		else
-		{
-			filling = Math.min(amount, this.getTankCapacity() - this.amount);
+			return 0;
 		}
 
-		if (filling < this.getTankCapacity())
+		int filling = Math.min(amount, this.getTankCapacity() - this.amount);
+		if (filling <= 0)
 		{
 			return 0;
 		}
@@ -148,7 +139,7 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		}
 
 		int draining = Math.min(amount, this.amount);
-		if (draining < this.getTankCapacity())
+		if (draining <= 0)
 		{
 			return 0;
 		}
@@ -170,9 +161,71 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		return FluidType.BUCKET_VOLUME;
 	}
 
+	public boolean hasPartialBucket()
+	{
+		return this.amount > 0 && this.amount < this.getTankCapacity();
+	}
+
+	public int getAmount()
+	{
+		return this.amount;
+	}
+
+	public Fluid getStoredFluid()
+	{
+		return this.fluid.isEmpty() ? Fluids.EMPTY : this.fluid.getFluid();
+	}
+
+	public void load(Fluid fluid, int amount)
+	{
+		this.setStored(fluid, amount);
+	}
+
+	public void syncFromBlockState(BlockState state)
+	{
+		Fluid fluid = Fluids.EMPTY;
+		int amount = CauldronFluidTransfom.getFluidAmount(state);
+
+		if (amount > 0)
+		{
+			CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(state);
+			if (transform != null)
+			{
+				fluid = transform.fluid();
+			}
+			else if (state.is(Blocks.WATER_CAULDRON))
+			{
+				fluid = Fluids.WATER;
+			}
+		}
+
+		this.setStored(fluid, amount);
+	}
+
+	public BlockState createRenderedBlockState()
+	{
+		CauldronFluidTransfom transform = this.fluid.isEmpty() ? null : CauldronFluidTransfom.byFluid(this.fluid.getFluid());
+		return transform != null ? transform.createBlockState(this.amount) : Blocks.CAULDRON.defaultBlockState();
+	}
+
 	private boolean isFluidValid(FluidResource resource)
 	{
 		return resource.isComponentsPatchEmpty() == true && CauldronFluidTransfom.byFluid(resource.getFluid()) != null;
+	}
+
+	private void setStored(Fluid fluid, int amount)
+	{
+		int clampedAmount = Math.clamp(amount, 0, this.getTankCapacity());
+		CauldronFluidTransfom transform = fluid != Fluids.EMPTY ? CauldronFluidTransfom.byFluid(fluid) : null;
+		if (clampedAmount <= 0 || transform == null)
+		{
+			this.fluid = FluidResource.EMPTY;
+			this.amount = 0;
+			return;
+		}
+
+		this.fluid = FluidResource.of(fluid);
+		this.amount = clampedAmount;
 	}
 
 	@Override
@@ -198,10 +251,19 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		}
 
 		BlockPos pos = this.getBlockPos();
-		CauldronFluidTransfom newTransform = CauldronFluidTransfom.byFluid(this.fluid.getFluid());
+		BlockState oldState = this.blockEntity.getBlockState();
+		BlockState newState = this.createRenderedBlockState();
+		this.blockEntity.setChanged();
 
-		level.setBlock(pos, newTransform != null ? newTransform.blockState() : Blocks.CAULDRON.defaultBlockState(), Block.UPDATE_ALL);
-		level.invalidateCapabilities(pos);
+		if (oldState.equals(newState) == false)
+		{
+			level.setBlock(pos, newState, Block.UPDATE_ALL);
+			level.invalidateCapabilities(pos);
+		}
+		else
+		{
+			level.sendBlockUpdated(pos, oldState, newState, Block.UPDATE_ALL);
+		}
 	}
 
 	public CauldronBlockEntity getBlockEntity()

@@ -19,9 +19,12 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.DispenserBlock;
 import net.minecraft.world.level.block.LayeredCauldronBlock;
 import net.minecraft.world.level.block.LevelEvent;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.Fluids;
+import net.neoforged.neoforge.fluids.FluidType;
+import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
 
 public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 {
@@ -54,6 +57,16 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 		return null;
 	}
 
+	public static int getFluidAmount(BlockState state)
+	{
+		if (state.is(Blocks.WATER_CAULDRON))
+		{
+			return FluidType.BUCKET_VOLUME * state.getValue(LayeredCauldronBlock.LEVEL) / LayeredCauldronBlock.MAX_FILL_LEVEL;
+		}
+
+		return getTransform(state) != null ? FluidType.BUCKET_VOLUME : 0;
+	}
+
 	public static DispenseItemBehavior wrapDispenseItemBehavior(BucketItem bucket, DispenseItemBehavior fallback)
 	{
 		if (bucket == Items.BUCKET)
@@ -83,9 +96,10 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			{
 				Level level = source.level();
 				BlockPos pos = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
-
-				BlockState state = level.getBlockState(pos);
-				CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(state);
+				BlockEntity blockEntity = level.getBlockEntity(pos);
+				CauldronFluidTransfom transform = blockEntity instanceof CauldronBlockEntity cauldron && cauldron.getFluidTank().getAmount() >= FluidType.BUCKET_VOLUME
+					? CauldronFluidTransfom.byFluid(cauldron.getFluidTank().getStoredFluid())
+					: null;
 
 				if (transform != null)
 				{
@@ -152,9 +166,11 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			{
 				Level level = source.level();
 				BlockPos pos = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
+				BlockEntity blockEntity = level.getBlockEntity(pos);
 
 				BlockState state = level.getBlockState(pos);
-				if (state.getBlock() instanceof AbstractCauldronBlock cauldron && cauldron.isFull(state) == false)
+				boolean canUseBucket = blockEntity instanceof CauldronBlockEntity cauldronBlockEntity ? cauldronBlockEntity.getFluidTank().getAmount() <= 0 : true;
+				if (canUseBucket && state.getBlock() instanceof AbstractCauldronBlock cauldron && cauldron.isFull(state) == false)
 				{
 					level.setBlockAndUpdate(pos, blockState());
 					level.levelEvent(LevelEvent.SOUND_DISPENSER_DISPENSE, source.pos(), 0);
@@ -166,6 +182,22 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 
 		};
 
+	}
+
+	public BlockState createBlockState(int amount)
+	{
+		if (amount <= 0)
+		{
+			return Blocks.CAULDRON.defaultBlockState();
+		}
+
+		if (this.fluid == Fluids.WATER)
+		{
+			int level = amount >= FluidType.BUCKET_VOLUME ? LayeredCauldronBlock.MAX_FILL_LEVEL : Math.max(1, amount * LayeredCauldronBlock.MAX_FILL_LEVEL / FluidType.BUCKET_VOLUME);
+			return Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, Math.min(level, LayeredCauldronBlock.MAX_FILL_LEVEL));
+		}
+
+		return this.blockState();
 	}
 
 }

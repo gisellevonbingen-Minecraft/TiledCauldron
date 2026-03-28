@@ -5,6 +5,13 @@ import org.apache.logging.log4j.Logger;
 
 import gisellevonbingen.tiled_cauldron.common.registries.ModBlockEntityTypes;
 import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.cauldron.CauldronInteraction;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Blocks;
 import net.neoforged.bus.api.IEventBus;
@@ -33,6 +40,7 @@ public class TiledCauldron
 		e.enqueueWork(() ->
 		{
 			CauldronFluidTransfom.bootStrap();
+			this.wrapBucketInteractions();
 		});
 	}
 
@@ -47,6 +55,33 @@ public class TiledCauldron
 	public static Identifier rl(String path)
 	{
 		return Identifier.fromNamespaceAndPath(MODID, path);
+	}
+
+	private void wrapBucketInteractions()
+	{
+		this.wrapBucketInteraction(CauldronInteraction.WATER, Items.BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.WATER, Items.WATER_BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.WATER, Items.LAVA_BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.WATER, Items.POWDER_SNOW_BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.LAVA, Items.BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.LAVA, Items.WATER_BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.LAVA, Items.LAVA_BUCKET);
+		this.wrapBucketInteraction(CauldronInteraction.LAVA, Items.POWDER_SNOW_BUCKET);
+	}
+
+	private void wrapBucketInteraction(CauldronInteraction.InteractionMap map, Item item)
+	{
+		CauldronInteraction interaction = map.map().get(item);
+		map.map().put(item, (state, level, pos, player, hand, stack) ->
+		{
+			return this.isPartialFluidCauldron(level, pos) ? InteractionResult.TRY_WITH_EMPTY_HAND : interaction.interact(state, level, pos, player, hand, stack);
+		});
+	}
+
+	private boolean isPartialFluidCauldron(Level level, BlockPos pos)
+	{
+		BlockEntity blockEntity = level.getBlockEntity(pos);
+		return blockEntity instanceof CauldronBlockEntity cauldronBlockEntity && cauldronBlockEntity.getFluidTank().hasPartialBucket();
 	}
 
 }
