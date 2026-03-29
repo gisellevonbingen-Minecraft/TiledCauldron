@@ -77,14 +77,8 @@ public class TiledCauldron
 		CauldronInteraction interaction = map.map().get(item);
 		map.map().put(item, (state, level, pos, player, hand, stack) ->
 		{
-			return this.isPartialFluidCauldron(level, pos) ? InteractionResult.TRY_WITH_EMPTY_HAND : interaction.interact(state, level, pos, player, hand, stack);
+			return shouldBlockVanillaWorldMutation(level, pos, state) ? InteractionResult.TRY_WITH_EMPTY_HAND : interaction.interact(state, level, pos, player, hand, stack);
 		});
-	}
-
-	private boolean isPartialFluidCauldron(Level level, BlockPos pos)
-	{
-		BlockEntity blockEntity = level.getBlockEntity(pos);
-		return blockEntity instanceof CauldronBlockEntity cauldronBlockEntity && cauldronBlockEntity.getFluidTank().hasPartialBucket();
 	}
 
 	public static boolean shouldBlockVanillaItemInteraction(Level level, BlockPos pos, BlockState state, ItemStack stack)
