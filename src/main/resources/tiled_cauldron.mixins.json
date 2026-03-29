@@ -5,7 +5,9 @@
 	"client": [],
 	"mixins": [
 		"AbstractCauldronBlockMixin",
-		"DispenserBlockMixin"
+		"CauldronBlockMixin",
+		"DispenserBlockMixin",
+		"LayeredCauldronBlockMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

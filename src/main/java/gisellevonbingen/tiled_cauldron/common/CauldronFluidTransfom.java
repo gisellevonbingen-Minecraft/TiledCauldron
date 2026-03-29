@@ -197,6 +197,11 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 			return Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, Math.min(level, LayeredCauldronBlock.MAX_FILL_LEVEL));
 		}
 
+		if (amount < FluidType.BUCKET_VOLUME)
+		{
+			return Blocks.CAULDRON.defaultBlockState();
+		}
+
 		return this.blockState();
 	}
 

@@ -171,9 +171,35 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		return this.amount;
 	}
 
+	public boolean hasManagedFluid()
+	{
+		return this.amount > 0 && this.getStoredFluid() != Fluids.EMPTY;
+	}
+
 	public Fluid getStoredFluid()
 	{
 		return this.fluid.isEmpty() ? Fluids.EMPTY : this.fluid.getFluid();
+	}
+
+	public boolean isVanillaStateCompatible(BlockState state)
+	{
+		Fluid stateFluid = Fluids.EMPTY;
+		int stateAmount = CauldronFluidTransfom.getFluidAmount(state);
+
+		if (stateAmount > 0)
+		{
+			CauldronFluidTransfom transform = CauldronFluidTransfom.getTransform(state);
+			if (transform != null)
+			{
+				stateFluid = transform.fluid();
+			}
+			else if (state.is(Blocks.WATER_CAULDRON))
+			{
+				stateFluid = Fluids.WATER;
+			}
+		}
+
+		return this.amount == stateAmount && this.getStoredFluid() == stateFluid;
 	}
 
 	public void load(Fluid fluid, int amount)

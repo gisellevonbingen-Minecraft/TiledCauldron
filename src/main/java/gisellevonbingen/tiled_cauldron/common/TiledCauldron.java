@@ -8,12 +8,15 @@ import gisellevonbingen.tiled_cauldron.common.tile.CauldronBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.cauldron.CauldronInteraction;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
@@ -49,7 +52,7 @@ public class TiledCauldron
 		e.registerBlock(Capabilities.Fluid.BLOCK, (level, pos, state, blockEntity, context) ->
 		{
 			return blockEntity instanceof CauldronBlockEntity cauldronBlockEntity ? cauldronBlockEntity.getFluidTank() : null;
-		}, Blocks.CAULDRON, Blocks.WATER_CAULDRON, Blocks.LAVA_CAULDRON, Blocks.POWDER_SNOW_CAULDRON);
+		}, Blocks.CAULDRON, Blocks.WATER_CAULDRON, Blocks.LAVA_CAULDRON);
 	}
 
 	public static Identifier rl(String path)
@@ -82,6 +85,23 @@ public class TiledCauldron
 	{
 		BlockEntity blockEntity = level.getBlockEntity(pos);
 		return blockEntity instanceof CauldronBlockEntity cauldronBlockEntity && cauldronBlockEntity.getFluidTank().hasPartialBucket();
+	}
+
+	public static boolean shouldBlockVanillaItemInteraction(Level level, BlockPos pos, BlockState state, ItemStack stack)
+	{
+		return !(stack.getItem() instanceof BucketItem) && shouldBlockVanillaWorldMutation(level, pos, state);
+	}
+
+	public static boolean shouldBlockVanillaWorldMutation(Level level, BlockPos pos, BlockState state)
+	{
+		BlockEntity blockEntity = level.getBlockEntity(pos);
+		if (blockEntity instanceof CauldronBlockEntity cauldronBlockEntity)
+		{
+			var fluidTank = cauldronBlockEntity.getFluidTank();
+			return fluidTank.hasManagedFluid() && !fluidTank.isVanillaStateCompatible(state);
+		}
+
+		return false;
 	}
 
 }
