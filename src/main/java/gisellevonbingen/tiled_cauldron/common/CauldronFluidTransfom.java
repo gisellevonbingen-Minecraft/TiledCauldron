@@ -67,6 +67,24 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 		return getTransform(state) != null ? FluidType.BUCKET_VOLUME : 0;
 	}
 
+	public static int getLayeredFillLevel(int amount)
+	{
+		if (amount <= 0)
+		{
+			return 0;
+		}
+
+		return amount >= FluidType.BUCKET_VOLUME
+			? LayeredCauldronBlock.MAX_FILL_LEVEL
+			: Math.max(1, (amount * LayeredCauldronBlock.MAX_FILL_LEVEL + FluidType.BUCKET_VOLUME - 1) / FluidType.BUCKET_VOLUME);
+	}
+
+	public static float getLayeredContentHeight(int amount)
+	{
+		int level = getLayeredFillLevel(amount);
+		return level <= 0 ? 0.0F : (float) (6.0D + level * 3.0D) / 16.0F;
+	}
+
 	public static DispenseItemBehavior wrapDispenseItemBehavior(BucketItem bucket, DispenseItemBehavior fallback)
 	{
 		if (bucket == Items.BUCKET)
@@ -97,6 +115,15 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 				Level level = source.level();
 				BlockPos pos = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
 				BlockEntity blockEntity = level.getBlockEntity(pos);
+				if (blockEntity instanceof CauldronBlockEntity cauldron)
+				{
+					int amount = cauldron.getFluidTank().getAmount();
+					if (amount > 0 && amount < FluidType.BUCKET_VOLUME)
+					{
+						return item;
+					}
+				}
+
 				CauldronFluidTransfom transform = blockEntity instanceof CauldronBlockEntity cauldron && cauldron.getFluidTank().getAmount() >= FluidType.BUCKET_VOLUME
 					? CauldronFluidTransfom.byFluid(cauldron.getFluidTank().getStoredFluid())
 					: null;
@@ -193,9 +220,7 @@ public record CauldronFluidTransfom(Fluid fluid, BlockState blockState)
 
 		if (this.fluid == Fluids.WATER)
 		{
-			int level = amount >= FluidType.BUCKET_VOLUME
-				? LayeredCauldronBlock.MAX_FILL_LEVEL
-				: Math.max(1, (amount * LayeredCauldronBlock.MAX_FILL_LEVEL + FluidType.BUCKET_VOLUME - 1) / FluidType.BUCKET_VOLUME);
+			int level = getLayeredFillLevel(amount);
 			return Blocks.WATER_CAULDRON.defaultBlockState().setValue(LayeredCauldronBlock.LEVEL, Math.min(level, LayeredCauldronBlock.MAX_FILL_LEVEL));
 		}
 

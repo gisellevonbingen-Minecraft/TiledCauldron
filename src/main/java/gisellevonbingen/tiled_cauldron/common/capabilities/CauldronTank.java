@@ -171,6 +171,37 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 		return this.amount;
 	}
 
+	public int fill(Fluid fluid, int amount)
+	{
+		if (this.isRemoved() == true || amount <= 0)
+		{
+			return 0;
+		}
+
+		CauldronFluidTransfom transform = fluid != Fluids.EMPTY ? CauldronFluidTransfom.byFluid(fluid) : null;
+		if (transform == null)
+		{
+			return 0;
+		}
+
+		Fluid storedFluid = this.getStoredFluid();
+		if (storedFluid != Fluids.EMPTY && storedFluid != fluid)
+		{
+			return 0;
+		}
+
+		int filling = Math.min(amount, this.getTankCapacity() - this.amount);
+		if (filling <= 0)
+		{
+			return 0;
+		}
+
+		this.fluid = FluidResource.of(fluid);
+		this.amount += filling;
+		this.commitStateChange();
+		return filling;
+	}
+
 	public boolean hasManagedFluid()
 	{
 		return this.amount > 0 && this.getStoredFluid() != Fluids.EMPTY;
@@ -269,6 +300,11 @@ public class CauldronTank extends SnapshotJournal<CauldronTank.Snapshot> impleme
 
 	@Override
 	protected void onRootCommit(Snapshot snapshot)
+	{
+		this.commitStateChange();
+	}
+
+	private void commitStateChange()
 	{
 		Level level = this.getLevel();
 		if (level == null || this.isRemoved() == true)

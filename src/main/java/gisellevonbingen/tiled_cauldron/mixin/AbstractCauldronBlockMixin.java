@@ -31,7 +31,12 @@ public class AbstractCauldronBlockMixin implements EntityBlock
 	private void useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult,
 		CallbackInfoReturnable<InteractionResult> cir)
 	{
-		if (TiledCauldron.shouldBlockVanillaItemInteraction(level, pos, state, stack))
+		InteractionResult managedInteraction = TiledCauldron.tryHandleManagedCauldronItemInteraction(level, pos, state, player, hand, stack);
+		if (managedInteraction != null)
+		{
+			cir.setReturnValue(managedInteraction);
+		}
+		else if (TiledCauldron.shouldBlockVanillaWorldMutation(level, pos, state))
 		{
 			cir.setReturnValue(InteractionResult.TRY_WITH_EMPTY_HAND);
 		}
